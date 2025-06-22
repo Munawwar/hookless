@@ -1,0 +1,7 @@
+npm run lint
+
+# Check if there are any uncommitted changes
+if [ -n "$(git status --porcelain)" ]; then
+  echo "Error: There are uncommitted changes after build. Please commit these changes before pushing."
+  exit 1
+fi 

@@ -1,0 +1,52 @@
+{
+  "name": "@firstack/hookless",
+  "version": "0.1.0",
+  "description": "Hookless component model for Preact with deep prop memoization and stable event props",
+  "type": "module",
+  "main": "lib/hookless.js",
+  "module": "lib/hookless.js",
+  "exports": {
+    ".": {
+      "types": "./dist-types/hookless.d.ts",
+      "default": "./lib/hookless.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "concurrently -i -c \"auto\" \"npm:example\"",
+    "lint": "npx @biomejs/biome check --write",
+    "test": "vitest --run --pool threads --environment jsdom",
+    "tsc": "tsc -p tsconfig.json",
+    "example": "browser-sync start --port 3050 --server --files 'example' --files 'dist' --startPath '/example/example.html'",
+    "prepare": "husky",
+    "pretest": "npm run tsc"
+  },
+  "keywords": [
+    "preact",
+    "performance",
+    "hookless"
+  ],
+  "author": "Munawwar",
+  "license": "MIT",
+  "repository": "https://github.com/Munawwar/hookless",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@testing-library/preact": "^3.2.4",
+    "browser-sync": "^3.0.2",
+    "concurrently": "^9.1.2",
+    "htm": "^3.1.1",
+    "husky": "^9.1.7",
+    "jsdom": "^26.1.0",
+    "preact": "^10.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.2"
+  },
+  "peerDependencies": {
+    "preact": "^10.0.0"
+  },
+  "engines": {
+    "node": ">= 10.0.0"
+  }
+}

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hookless Demo</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/styles/default.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/languages/javascript.min.js" defer></script>
+  <style>
+    :root {
+      --ink: #13211b;
+      --muted: #5d6b63;
+      --paper: #f8f4eb;
+      --panel: rgba(255, 252, 245, 0.85);
+      --panel-strong: #f0e7d5;
+      --line: rgba(19, 33, 27, 0.12);
+      --accent: #0f766e;
+      --accent-strong: #0a4f4a;
+      --accent-soft: #d6eeeb;
+      --shadow: 0 18px 50px rgba(19, 33, 27, 0.1);
+    }
+
+    html {
+      min-height: 100%;
+      background-color: var(--paper);
+    }
+    
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      padding: 24px;
+      min-height: 100vh;
+      min-width: 320px;
+      max-width: 860px;
+      margin: 0 auto;
+      color: var(--ink);
+    }
+
+    #root {
+      width: 100%;
+    }
+
+    button {
+      font: inherit;
+      border: 1px solid var(--line);
+      padding: 0.8rem 1.1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+    }
+    
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    select {
+      font: inherit;
+      background: white;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 0.8rem 1rem;
+      min-width: 12rem;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Monaco, Consolas, monospace;
+    }
+
+    .page {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .hero,
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 1.4rem;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .panel-accent {
+      background:
+        linear-gradient(135deg, rgba(214, 238, 235, 0.9), rgba(255, 252, 245, 0.88));
+    }
+
+    .hero h1,
+    .panel h2,
+    .panel h3 {
+      margin: 0;
+      line-height: 1.05;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.65rem, 4vw, 2.45rem);
+      max-width: 14ch;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p,
+    .status,
+    .infoGrid span,
+    .stat span {
+      color: var(--muted);
+    }
+
+    .hero p {
+      margin: 1.15rem 0 0;
+      max-width: 40rem;
+      line-height: 1.45;
+    }
+
+    .eyebrow {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 0.55rem;
+    }
+
+    .panelHeader,
+    .buttonRow,
+    .selectRow,
+    .infoGrid {
+      display: flex;
+      gap: 0.9rem;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .panelHeader {
+      margin-bottom: 1.15rem;
+    }
+
+    .buttonRow,
+    .selectRow,
+    .infoGrid {
+      margin-top: 1rem;
+    }
+
+    .stat {
+      min-width: 4.5rem;
+      text-align: right;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+
+    .infoGrid > div {
+      flex: 1 1 14rem;
+      padding: 1rem;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(19, 33, 27, 0.08);
+    }
+
+    .status {
+      margin: 1.15rem 0 0;
+      line-height: 1.45;
+    }
+
+    .infoGrid strong {
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 1.1rem;
+    }
+
+    .primaryButton {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .primaryButton:hover {
+      background: var(--accent-strong);
+      border-color: var(--accent-strong);
+    }
+
+    .ghostButton {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    details summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+    details .codeBlock {
+      margin-top: 1rem;
+    }
+
+    pre {
+      overflow: auto;
+      border-radius: 20px;
+      margin: 0;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+
+      .hero,
+      .panel {
+        padding: 1rem;
+        border-radius: 22px;
+      }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "preact": "https://esm.sh/preact@10?dev",
+        "preact/hooks": "https://esm.sh/preact@10/hooks?dev",
+        "preact/jsx-runtime": "https://esm.sh/preact@10/jsx-runtime?dev",
+        "preact/compat": "https://esm.sh/preact@10/compat?dev",
+        "htm": "https://esm.sh/htm?dev"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  
+  <script type="module">
+    import './example.js';
+
+    
+  </script>
+</body>
+
+</html>
