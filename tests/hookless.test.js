@@ -87,6 +87,26 @@ describe("hookless", () => {
     expect(calls).toEqual(["first", "second"]);
   });
 
+  it("rerenders when an auto event prop is added or removed", () => {
+    let renderCalls = 0;
+    const calls = [];
+    const Component = hookless(({ getProps }) => ({
+      render() {
+        renderCalls += 1;
+        return html`<button onClick=${getProps().onClick}>Click</button>`;
+      },
+    }));
+    const { getByRole, rerender } = render(html`<${Component} />`);
+
+    rerender(html`<${Component} onClick=${() => calls.push("click")} />`);
+    fireEvent.click(getByRole("button", { name: "Click" }));
+    rerender(html`<${Component} />`);
+    fireEvent.click(getByRole("button", { name: "Click" }));
+
+    expect(renderCalls).toBe(3);
+    expect(calls).toEqual(["click"]);
+  });
+
   it("supports custom auto event props through include", () => {
     let renderCalls = 0;
     const calls = [];
