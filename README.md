@@ -76,7 +76,8 @@ const Counter = hookless(({ getProps, onMount, onProps, update }) => {
 `factory` receives:
 
 - `getProps()`: returns the latest props
-- `onProps(handler)`: runs before render when a prop actually changed
+- `onProps(handler)`: runs before update renders when a prop actually changed; it does not run
+  during initial setup
 - `onMount(handler)`: runs on mount; may return cleanup
 - `update(callback?)`: forces a rerender; optional callback runs after render flush
 

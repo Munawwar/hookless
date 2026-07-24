@@ -42,7 +42,7 @@ describe("hookless", () => {
     expect(seenOptions[1]).toBe(seenOptions[0]);
   });
 
-  it("reports only meaningful prop changes to onProps", () => {
+  it("reports only meaningful prop updates to onProps", () => {
     const events = [];
     let firstOptions = null;
     const Component = hookless(({ getProps, onProps }) => {
@@ -58,12 +58,13 @@ describe("hookless", () => {
     });
     const { rerender } = render(html`<${Component} count=${1} options=${["a", "b"]} />`);
 
+    expect(events).toEqual([]);
     rerender(html`<${Component} count=${2} options=${["a", "b"]} />`);
 
-    expect(events).toHaveLength(2);
-    expect(events[1].changedProps).toEqual(["count"]);
-    expect(events[1].oldProps.count).toBe(1);
-    expect(events[1].oldProps.options).toBe(firstOptions);
+    expect(events).toHaveLength(1);
+    expect(events[0].changedProps).toEqual(["count"]);
+    expect(events[0].oldProps.count).toBe(1);
+    expect(events[0].oldProps.options).toBe(firstOptions);
   });
 
   it("keeps auto event props stable while calling the latest handler", () => {
