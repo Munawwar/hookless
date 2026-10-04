@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/preact";
 import { html } from "htm/preact";
+import { createContext } from "preact";
 import { afterEach, describe, expect, it } from "vitest";
 import { createState, hookless } from "../lib/hookless.js";
 
@@ -42,29 +43,27 @@ describe("hookless", () => {
     expect(seenOptions[1]).toBe(seenOptions[0]);
   });
 
-  it("reports only meaningful prop updates to onProps", () => {
+  it("runs effects only when their dependencies change", () => {
     const events = [];
-    let firstOptions = null;
-    const Component = hookless(({ getProps, onProps }) => {
-      onProps((changedProps, oldProps) => {
-        events.push({ changedProps, oldProps });
+    let renderEffects = 0;
+    const Component = hookless(({ effect, getProps }) => {
+      effect(() => {
+        renderEffects += 1;
       });
-      return {
-        render() {
-          firstOptions ??= getProps().options;
-          return html`<div>${String(getProps().count)}</div>`;
-        },
-      };
+      effect(
+        () => events.push(getProps().count),
+        () => [getProps().count],
+      );
+      return { render: () => html`<div>${String(getProps().count)}</div>` };
     });
     const { rerender } = render(html`<${Component} count=${1} options=${["a", "b"]} />`);
 
-    expect(events).toEqual([]);
+    expect(events).toEqual([1]);
+    rerender(html`<${Component} count=${1} options=${["a", "b"]} />`);
     rerender(html`<${Component} count=${2} options=${["a", "b"]} />`);
 
-    expect(events).toHaveLength(1);
-    expect(events[0].changedProps).toEqual(["count"]);
-    expect(events[0].oldProps.count).toBe(1);
-    expect(events[0].oldProps.options).toBe(firstOptions);
+    expect(events).toEqual([1, 2]);
+    expect(renderEffects).toBe(3);
   });
 
   it("keeps auto event props stable while calling the latest handler", () => {
@@ -175,65 +174,104 @@ describe("hookless", () => {
     expect(renderCalls).toBe(3);
   });
 
-  it("does not queue an extra rerender when update is called during render", () => {
-    let renderCalls = 0;
-    const Component = hookless(({ getProps, onProps, update }) => {
-      onProps((changedProps) => {
-        if (changedProps.includes("value")) update();
-      });
+  it("uses current state in dependencies and effects", () => {
+    const values = [];
+    const Component = hookless(({ effect }) => {
+      const [getCount, setCount] = createState(0);
+      effect(
+        () => values.push(getCount()),
+        () => [getCount()],
+      );
       return {
-        render() {
-          renderCalls += 1;
-          return html`<div>${String(getProps().value)}</div>`;
-        },
+        render: () => html`<button onClick=${() => setCount((value) => value + 1)}>Count</button>`,
       };
     });
-    const { rerender } = render(html`<${Component} value=${1} />`);
+    const { getByRole } = render(html`<${Component} />`);
 
-    rerender(html`<${Component} value=${2} />`);
+    fireEvent.click(getByRole("button", { name: "Count" }));
 
-    expect(renderCalls).toBe(2);
+    expect(values).toEqual([0, 1]);
   });
 
-  it("does not queue an extra rerender when createState updates during render", () => {
-    let renderCalls = 0;
-    const Component = hookless(({ getProps, onProps }) => {
-      const [getSelection, setSelection] = createState(getProps().options[0]);
-      onProps((changedProps) => {
-        if (changedProps.includes("options")) setSelection(getProps().options[0]);
-      });
-      return {
-        render() {
-          renderCalls += 1;
-          return html`<div>${getSelection()}</div>`;
-        },
-      };
-    });
-    const { rerender, container } = render(html`<${Component} options=${["red", "blue"]} />`);
-
-    rerender(html`<${Component} options=${["green", "yellow"]} />`);
-
-    expect(container.textContent).toBe("green");
-    expect(renderCalls).toBe(2);
-  });
-
-  it("runs mount cleanups on unmount", () => {
-    let mounted = 0;
-    let cleaned = 0;
-    const Component = hookless(({ onMount }) => {
-      onMount(() => {
-        mounted += 1;
-        return () => {
-          cleaned += 1;
-        };
-      });
+  it("runs layout effects before ordinary effects", () => {
+    const events = [];
+    const Component = hookless(({ effect, layoutEffect }) => {
+      effect(
+        () => events.push("effect"),
+        () => [],
+      );
+      layoutEffect(
+        () => events.push("layoutEffect"),
+        () => [],
+      );
       return { render: () => html`<div>ready</div>` };
     });
-    const view = render(html`<${Component} />`);
+
+    render(html`<${Component} />`);
+
+    expect(events).toEqual(["layoutEffect", "effect"]);
+  });
+
+  it("runs effect cleanups before reruns and on unmount", () => {
+    let mounted = 0;
+    let cleaned = 0;
+    let mountOnlyRuns = 0;
+    const Component = hookless(({ effect, getProps }) => {
+      effect(
+        () => {
+          mounted += 1;
+          return () => {
+            cleaned += 1;
+          };
+        },
+        () => [getProps().value],
+      );
+      effect(
+        () => {
+          mountOnlyRuns += 1;
+        },
+        () => [],
+      );
+      return { render: () => html`<div>ready</div>` };
+    });
+    const view = render(html`<${Component} value=${1} />`);
+
+    view.rerender(html`<${Component} value=${2} />`);
+    expect({ cleaned, mounted }).toEqual({ cleaned: 1, mounted: 2 });
+    expect(mountOnlyRuns).toBe(1);
 
     view.unmount();
 
-    expect(mounted).toBe(1);
-    expect(cleaned).toBe(1);
+    expect(cleaned).toBe(2);
+  });
+
+  it("rerenders for context changes and exposes the latest value", () => {
+    const Theme = createContext("light");
+    const effectValues = [];
+    let getTheme;
+    let renderCalls = 0;
+    const Component = hookless(({ effect, getContext }) => {
+      getTheme = getContext(Theme);
+      effect(
+        () => effectValues.push(getTheme()),
+        () => [getTheme()],
+      );
+      return {
+        render() {
+          renderCalls += 1;
+          return html`<div>${getTheme()}</div>`;
+        },
+      };
+    });
+    const { container, rerender } = render(
+      html`<${Theme.Provider} value="light"><${Component} /><//>`,
+    );
+
+    rerender(html`<${Theme.Provider} value="dark"><${Component} /><//>`);
+
+    expect(container.textContent).toBe("dark");
+    expect(getTheme()).toBe("dark");
+    expect(effectValues).toEqual(["light", "dark"]);
+    expect(renderCalls).toBe(2);
   });
 });

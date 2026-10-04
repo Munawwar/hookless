@@ -2,6 +2,8 @@
 
 Hookless component model for Preact.
 
+Hookless has hooks in the same way serverless has servers: they are still there, just different.
+
 (Do not use in production yet.)
 
 ## Why
@@ -11,7 +13,7 @@ I wanted a simpler component and utilities to
 - be forgiving to re-render from unintentional child prop changes (with prop-level memoization and auto useEffectEvent()-ing of `on*` props)
 - reduce the previous mentioned case and useMemo()/useCallback()s by having a component setup scope (think class constructor, but render method having the closure access to them) 
 - make vdom diffing faster if no prop changed (auto memoize jsx / vdom)
-- reduce need for hooks (with onProp and onMount event subscription)
+- keep effects explicit without stale dependency closures
 
 This project is an attempt to avoid many performance footguns [as I documented here](https://gist.github.com/Munawwar/9dad5823ee13d91eec415212d350c78d.) combining it with a simpler component model.
 
@@ -26,7 +28,7 @@ Creates a Preact component from an instance-like model.
 import { hookless, createRef, createState } from "@firstack/hookless";
 import { html } from "htm/preact";
 
-const Counter = hookless(({ getProps, onMount, onProps, update }) => {
+const Counter = hookless(({ effect, getContext, getProps, layoutEffect, update }) => {
   // Component setup logic here ...
 
   // getProps and get<State> functions avoids stale closure issues
@@ -39,17 +41,17 @@ const Counter = hookless(({ getProps, onMount, onProps, update }) => {
   // Event handlers can be defined here. No need of useCallback().
   const onClick = () => setCount(getCount() + 1);
 
-  // onProps and onMount reduces need for useEffects
-  onProps((changedProps, oldProps) => {
-    if (changedProps.includes("resetKey")) {
-      setCount(0, false);
-      // getProps() still gives the latest props
-    }
-  });
+  // Both the effect and dependency getter always read current values.
+  effect(() => {
+    setCount(0);
+  }, () => [getProps().resetKey]);
 
-  onMount(() => {
+  layoutEffect(() => {
     buttonRef.current?.focus();
-  });
+  }, () => []);
+
+  // Contexts use stable getters too, so events and effects never capture stale values.
+  // const getTheme = getContext(ThemeContext);
 
   return {
     render() {
@@ -76,10 +78,17 @@ const Counter = hookless(({ getProps, onMount, onProps, update }) => {
 `factory` receives:
 
 - `getProps()`: returns the latest props
-- `onProps(handler)`: runs before update renders when a prop actually changed; it does not run
-  during initial setup
-- `onMount(handler)`: runs on mount; may return cleanup
+- `getContext(Context)`: subscribes to a Preact context and returns a stable getter for its latest
+  value; call it during component setup
+- `effect(handler, getDependencies?)`: runs after commit on mount and whenever a dependency
+  changes by `Object.is`; the dependency getter is evaluated during each wrapper render
+- `effect(handler)`: runs after every render; use `effect(handler, () => [])` for mount/unmount only
+- `layoutEffect(handler, getDependencies?)`: has the same dependency behavior as `effect`, but runs
+  synchronously after DOM updates and before the browser paints
 - `update(callback?)`: forces a rerender; optional callback runs after render flush
+
+Effects run after commit, so values needed by the same render should be derived during `render()`
+rather than synchronized from an effect.
 
 The object returned by `factory` must contain:
 

@@ -15,7 +15,7 @@ const palettes = [
 
 const demoSource = `import { hookless, createRef, createState } from "@firstack/hookless";
 
-const SmartSelect = hookless(({ getProps, onMount, onProps }) => {
+const SmartSelect = hookless(({ effect, getProps, layoutEffect }) => {
   // Component setup logic here ...
 
   // getProps and get<State> functions avoids stale closure issues
@@ -28,16 +28,13 @@ const SmartSelect = hookless(({ getProps, onMount, onProps }) => {
     getProps().onChange?.(value);
   }
 
-  // onProps and onMount reduces need for useEffects
-  onProps((changedProps) => {
-    if (changedProps.includes("options")) {
-      setSelection(getProps().options[0], false);
-    }
-  });
+  effect(() => {
+    setSelection(getProps().options[0]);
+  }, () => [getProps().options]);
 
-  onMount(() => {
+  layoutEffect(() => {
     selectRef.current?.focus();
-  });
+  }, () => []);
 
   return {
     render() {
@@ -75,7 +72,7 @@ const SmartSelect = hookless(({ getProps, onMount, onProps }) => {
 });`;
 
 const SmartSelect = hookless(
-  ({ getProps, onMount, onProps }) => {
+  ({ effect, getProps, layoutEffect }) => {
     const [getSelection, setSelection] = createState(getProps().options[0]);
     const selectRef = createRef();
     let renderCount = 0;
@@ -85,15 +82,13 @@ const SmartSelect = hookless(
       getProps().onChange?.(value);
     }
 
-    onProps((changedProps) => {
-      if (changedProps.includes("options")) {
-        setSelection(getProps().options[0], false);
-      }
-    });
+    effect(() => {
+      setSelection(getProps().options[0]);
+    }, () => [getProps().options]);
 
-    onMount(() => {
+    layoutEffect(() => {
       selectRef.current?.focus();
-    });
+    }, () => []);
 
     return {
       render() {
@@ -175,8 +170,8 @@ function App() {
         <h1>Hookless keeps component state local while prop updates stay predictable.</h1>
         <p>
           Trigger a parent rerender and notice the child render count does not change. Swap the
-          options array and the component rerenders once, resets its selection from
-          <code>onProps</code>, and keeps using the latest <code>onChange</code> closure.
+          options array and the component resets its selection from <code>effect</code>, while its
+          event handler keeps using the latest <code>onChange</code> closure.
         </p>
       </section>
 

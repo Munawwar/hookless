@@ -16,25 +16,35 @@ export function createState<T>(initialValue: T, deep?: boolean): [() => T, (valu
  * @template {PropsRecord} Props
  * @template {HooklessModel} Model
  * @param {(api: {
+ *   effect: (handler: EffectHandler, getDependencies?: () => unknown[]) => void,
+ *   getContext: <T>(context: import("preact").Context<T>) => () => T,
  *   getProps: () => Props,
- *   onProps: (handler: (changedProps: string[], oldProps: Props) => void) => void,
- *   onMount: (handler: () => void | (() => void)) => void,
+ *   layoutEffect: (handler: EffectHandler, getDependencies?: () => unknown[]) => void,
  *   update: (callback?: RenderCallback) => void,
  * }) => Model} factory
  * @param {HooklessOptions} [options={}]
  * @returns {import("preact").FunctionComponent<Props>}
  */
 export function hookless<Props extends PropsRecord, Model extends HooklessModel>(factory: (api: {
+    effect: (handler: EffectHandler, getDependencies?: () => unknown[]) => void;
+    getContext: <T>(context: import("preact").Context<T>) => () => T;
     getProps: () => Props;
-    onProps: (handler: (changedProps: string[], oldProps: Props) => void) => void;
-    onMount: (handler: () => void | (() => void)) => void;
+    layoutEffect: (handler: EffectHandler, getDependencies?: () => unknown[]) => void;
     update: (callback?: RenderCallback) => void;
 }) => Model, options?: HooklessOptions): import("preact").FunctionComponent<Props>;
 export type ComponentChildren = import("preact").ComponentChildren;
 export type PropsRecord = Record<string, any>;
 export type RenderCallback = () => void;
-export type PropHandler = (changedProps: string[], oldProps: PropsRecord) => void;
-export type MountHandler = () => void | (() => void);
+export type EffectHandler = () => void | (() => void);
+export type EffectRecord = {
+    getDependencies?: () => unknown[];
+    handler: EffectHandler;
+};
+export type ContextBinding = {
+    context: import("preact").Context<any>;
+    get: () => any;
+    value: any;
+};
 export type MemoConfig = {
     enabled: boolean;
     only: Set<string> | null;
@@ -64,16 +74,17 @@ export type HooklessOptions = {
 export type HooklessRuntime = {
     eventConfig: EventConfig;
     memoConfig: MemoConfig;
+    contexts: Map<import("preact").Context<any>, ContextBinding>;
+    effects: EffectRecord[];
     eventProps: Record<string, EventProxy>;
     forceRender: () => void;
     isRendering: boolean;
     lastProps: PropsRecord | null;
     lastRenderVersion: number;
     lastVNode: ComponentChildren | typeof Nil;
+    layoutEffects: EffectRecord[];
     model: HooklessModel | null;
-    mountHandlers: MountHandler[];
     pendingCallbacks: RenderCallback[];
-    propHandlers: PropHandler[];
     props: PropsRecord;
     renderVersion: number;
 };
