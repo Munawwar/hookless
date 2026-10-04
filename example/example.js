@@ -34,7 +34,7 @@ const SmartSelect = hookless(({ effect, getProps, layoutEffect }) => {
 
   layoutEffect(() => {
     selectRef.current?.focus();
-  }, () => []);
+  });
 
   return {
     render() {
@@ -88,7 +88,7 @@ const SmartSelect = hookless(
 
     layoutEffect(() => {
       selectRef.current?.focus();
-    }, () => []);
+    });
 
     return {
       render() {

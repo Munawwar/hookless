@@ -45,10 +45,10 @@ describe("hookless", () => {
 
   it("runs effects only when their dependencies change", () => {
     const events = [];
-    let renderEffects = 0;
+    let mountEffects = 0;
     const Component = hookless(({ effect, getProps }) => {
       effect(() => {
-        renderEffects += 1;
+        mountEffects += 1;
       });
       effect(
         () => events.push(getProps().count),
@@ -63,7 +63,7 @@ describe("hookless", () => {
     rerender(html`<${Component} count=${2} options=${["a", "b"]} />`);
 
     expect(events).toEqual([1, 2]);
-    expect(renderEffects).toBe(3);
+    expect(mountEffects).toBe(1);
   });
 
   it("keeps auto event props stable while calling the latest handler", () => {
@@ -196,14 +196,8 @@ describe("hookless", () => {
   it("runs layout effects before ordinary effects", () => {
     const events = [];
     const Component = hookless(({ effect, layoutEffect }) => {
-      effect(
-        () => events.push("effect"),
-        () => [],
-      );
-      layoutEffect(
-        () => events.push("layoutEffect"),
-        () => [],
-      );
+      effect(() => events.push("effect"));
+      layoutEffect(() => events.push("layoutEffect"));
       return { render: () => html`<div>ready</div>` };
     });
 

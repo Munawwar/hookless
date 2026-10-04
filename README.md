@@ -48,7 +48,7 @@ const Counter = hookless(({ effect, getContext, getProps, layoutEffect, update }
 
   layoutEffect(() => {
     buttonRef.current?.focus();
-  }, () => []);
+  });
 
   // Contexts use stable getters too, so events and effects never capture stale values.
   // const getTheme = getContext(ThemeContext);
@@ -82,7 +82,7 @@ const Counter = hookless(({ effect, getContext, getProps, layoutEffect, update }
   value; call it during component setup
 - `effect(handler, getDependencies?)`: runs after commit on mount and whenever a dependency
   changes by `Object.is`; the dependency getter is evaluated during each wrapper render
-- `effect(handler)`: runs after every render; use `effect(handler, () => [])` for mount/unmount only
+- `effect(handler)`: runs on mount and cleans up on unmount, equivalent to `effect(handler, () => [])`
 - `layoutEffect(handler, getDependencies?)`: has the same dependency behavior as `effect`, but runs
   synchronously after DOM updates and before the browser paints
 - `update(callback?)`: forces a rerender; optional callback runs after render flush
